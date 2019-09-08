@@ -60,9 +60,10 @@ const (
 )
 
 var (
-	templates *template.Template
-	dbx       *sqlx.DB
-	store     sessions.Store
+	templates      *template.Template
+	dbx            *sqlx.DB
+	store          sessions.Store
+	masterCategory map[int]Category
 )
 
 type Config struct {
@@ -319,7 +320,6 @@ func main() {
 	}
 	defer dbx.Close()
 
-
 	mux := goji.NewMux()
 
 	// API
@@ -409,7 +409,7 @@ func getUserSimpleByID(q sqlx.Queryer, userID int64) (userSimple UserSimple, err
 }
 
 func getCategoryByID(q sqlx.Queryer, categoryID int) (category Category, err error) {
-	err = sqlx.Get(q, &category, "SELECT * FROM `categories` WHERE `id` = ?", categoryID)
+	category = masterCategory[categoryID]
 	if category.ParentID != 0 {
 		parentCategory, err := getCategoryByID(q, category.ParentID)
 		if err != nil {
@@ -497,6 +497,14 @@ func postInitialize(w http.ResponseWriter, r *http.Request) {
 		Campaign: 0,
 		// 実装言語を返す
 		Language: "Go",
+	}
+
+	// categoryの初期化
+	masterCategory = make(map[int]Category)
+	categories := []Category{}
+	err = dbx.Select(&categories, "SELECT * FROM `categories`")
+	for _, v := range categories {
+		masterCategory[v.ID] = v
 	}
 
 	w.Header().Set("Content-Type", "application/json;charset=utf-8")
@@ -984,7 +992,6 @@ func getTransactions(w http.ResponseWriter, r *http.Request) {
 
 		itemDetails = append(itemDetails, itemDetail)
 	}
-
 
 	hasNext := false
 	if len(itemDetails) > TransactionsPerPage {
@@ -2301,5 +2308,3 @@ func outputErrorMsg(w http.ResponseWriter, status int, msg string) {
 func getImageURL(imageName string) string {
 	return fmt.Sprintf("/upload/%s", imageName)
 }
-
-
