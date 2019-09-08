@@ -8,6 +8,7 @@ SQL_DIR=$GOPATH/src/github.com/inoue3/isucon9/webapp/sql
 
 # build
 cd $APP_DIR
+rm -f prod-isucari
 make prod-isucari
 
 ssh -i $PRIVATE_KEY isucon@$SERVER <<EOC
