@@ -900,13 +900,52 @@ func getTransactions(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// TODO:
+	sellerIDs := []int64{}
+	for _, v := range items {
+		sellerIDs = append(sellerIDs, v.SellerID)
+	}
+	q, vs, err := sqlx.In("SELECT * FROM `users` WHERE `id` IN (?) ", sellerIDs)
+	us := []User{}
+	err = dbx.Select(&us, q, vs...)
+	sellerMap := make(map[int64]UserSimple)
+	for _, v := range us {
+		sellerMap[v.ID] = UserSimple{
+			ID:           v.ID,
+			AccountName:  v.AccountName,
+			NumSellItems: v.NumSellItems,
+		}
+	}
+	if err != nil {
+		log.Print(err)
+		outputErrorMsg(w, http.StatusInternalServerError, "db error")
+		return
+	}
+
+	buyerIDs := []int64{}
+	for _, v := range items {
+		buyerIDs = append(buyerIDs, v.BuyerID)
+	}
+	q1, vs1, err := sqlx.In("SELECT * FROM `users` WHERE `id` IN (?) ", buyerIDs)
+	bus := []User{}
+	err = dbx.Select(&bus, q1, vs1...)
+	buyerMap := make(map[int64]UserSimple)
+	for _, v := range bus {
+		buyerMap[v.ID] = UserSimple{
+			ID:           v.ID,
+			AccountName:  v.AccountName,
+			NumSellItems: v.NumSellItems,
+		}
+	}
+	if err != nil {
+		log.Print(err)
+		outputErrorMsg(w, http.StatusInternalServerError, "db error")
+		return
+	}
+
 	itemDetails := []ItemDetail{}
 	for _, item := range items {
-		seller, err := getUserSimpleByID(dbx, item.SellerID)
-		if err != nil {
-			outputErrorMsg(w, http.StatusNotFound, "seller not found")
-			return
-		}
+		seller := sellerMap[item.SellerID]
 		category, err := getCategoryByID(dbx, item.CategoryID)
 		if err != nil {
 			outputErrorMsg(w, http.StatusNotFound, "category not found")
@@ -914,11 +953,9 @@ func getTransactions(w http.ResponseWriter, r *http.Request) {
 		}
 
 		itemDetail := ItemDetail{
-			ID:       item.ID,
-			SellerID: item.SellerID,
-			Seller:   &seller,
-			// BuyerID
-			// Buyer
+			ID:          item.ID,
+			SellerID:    item.SellerID,
+			Seller:      &seller,
 			Status:      item.Status,
 			Name:        item.Name,
 			Price:       item.Price,
@@ -933,12 +970,8 @@ func getTransactions(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if item.BuyerID != 0 {
-			buyer, err := getUserSimpleByID(dbx, item.BuyerID)
-			if err != nil {
-				outputErrorMsg(w, http.StatusNotFound, "buyer not found")
-				return
-			}
 			itemDetail.BuyerID = item.BuyerID
+			buyer := sellerMap[item.SellerID]
 			itemDetail.Buyer = &buyer
 		}
 
