@@ -320,14 +320,6 @@ func main() {
 	}
 	defer dbx.Close()
 
-	// categoryの初期化
-	masterCategory = make(map[int]Category)
-	categories := []Category{}
-	err = dbx.Select(&categories, "SELECT * FROM `categories`")
-	for _, v := range categories {
-		masterCategory[v.ID] = v
-	}
-
 	mux := goji.NewMux()
 
 	// API
@@ -505,6 +497,14 @@ func postInitialize(w http.ResponseWriter, r *http.Request) {
 		Campaign: 0,
 		// 実装言語を返す
 		Language: "Go",
+	}
+
+	// categoryの初期化
+	masterCategory = make(map[int]Category)
+	categories := []Category{}
+	err = dbx.Select(&categories, "SELECT * FROM `categories`")
+	for _, v := range categories {
+		masterCategory[v.ID] = v
 	}
 
 	w.Header().Set("Content-Type", "application/json;charset=utf-8")
