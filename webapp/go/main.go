@@ -961,18 +961,25 @@ func getTransactions(w http.ResponseWriter, r *http.Request) {
 				outputErrorMsg(w, http.StatusInternalServerError, "db error")
 				return
 			}
-			ssr, err := APIShipmentStatus(getShipmentServiceURL(), &APIShipmentStatusReq{
-				ReserveID: shipping.ReserveID,
-			})
-			if err != nil {
-				log.Print(err)
-				outputErrorMsg(w, http.StatusInternalServerError, "failed to request to shipment service")
-				return
+			switch shipping.Status {
+			case ShippingsStatusInitial:
+				itemDetail.ShippingStatus = ShippingsStatusInitial
+			case ShippingsStatusDone:
+				itemDetail.ShippingStatus = ShippingsStatusDone
+			default:
+				ssr, err := APIShipmentStatus(getShipmentServiceURL(), &APIShipmentStatusReq{
+					ReserveID: shipping.ReserveID,
+				})
+				if err != nil {
+					log.Print(err)
+					outputErrorMsg(w, http.StatusInternalServerError, "failed to request to shipment service")
+					return
+				}
+				itemDetail.ShippingStatus = ssr.Status
 			}
 
 			itemDetail.TransactionEvidenceID = transactionEvidence.ID
 			itemDetail.TransactionEvidenceStatus = transactionEvidence.Status
-			itemDetail.ShippingStatus = ssr.Status
 		}
 
 		itemDetails = append(itemDetails, itemDetail)
