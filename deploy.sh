@@ -4,6 +4,7 @@ PRIVATE_KEY=~/.ssh/isucon9
 SERVER=47.74.47.25
 APP_DIR=$GOPATH/src/github.com/inoue3/isucon9/webapp/go
 REPO_DIR=$GOPATH/src/github.com/inoue3/isucon9/webapp/go
+SQL_DIR=$GOPATH/src/github.com/inoue3/isucon9/webapp/sql
 
 # build
 cd $APP_DIR
@@ -15,7 +16,11 @@ sudo systemctl stop isucari.golang.service
 echo "done"
 EOC
 
+# upload isucari app
 scp -i $PRIVATE_KEY $APP_DIR/prod-isucari isucon@$SERVER:/home/isucon/isucari/webapp/go/isucari
+
+# upload sql
+scp -i $PRIVATE_KEY -r $SQL_DIR/* isucon@$SERVER:/home/isucon/isucari/webapp/sql/
 
 ssh -i $PRIVATE_KEY isucon@$SERVER <<EOC
 echo "# golang app start"
